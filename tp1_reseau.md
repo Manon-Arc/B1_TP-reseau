@@ -247,6 +247,7 @@ Carte réseau sans fil Wi-Fi :
 ```
 🌞 Utiliser, en ligne de commande l'outil `nslookup` (Windows, MacOS) ou `dig` (GNU/Linux, MacOS) pour faire des requêtes DNS à la main
 
+- faites un *lookup* (*lookup* = "dis moi à quelle IP se trouve tel nom de domaine")
   - pour `google.com`
 
 ```
