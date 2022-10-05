@@ -320,6 +320,6 @@ Address:  8.8.8.8
 
 - déterminez à quelle IP et quel port votre PC se connecte quand vous regardez une vidéo Youtube
 
-![trameyoutube](trameytb.png)
+![trameyoutube](trameytb.PNG)
 
-![ipetportyoutube](ipportytb.png)
+![ipetportyoutube](ipportytb.PNG)
