@@ -310,7 +310,7 @@ Address:  8.8.8.8
 
 - un `netcat` entre vous et votre mate, branché en RJ45
 
-![tramenetcat](tramenetcat.png)
+![tramenetcat](tramenetcat.PNG)
 
 - une requête DNS. Identifiez dans la capture le serveur DNS à qui vous posez la question.
 
