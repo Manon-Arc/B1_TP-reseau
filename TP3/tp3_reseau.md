@@ -8,6 +8,27 @@
 | `john`   | `10.3.1.11`   |
 | `marcel` | `10.3.1.12`   |
 
+```
+[john@localhost network-scripts]$ cat ifcfg-enp0s8
+DEVICE=enp0s8
+
+BOOTPROTO=static
+ONBOOT=yes
+
+IPADDR=10.3.1.11
+NETMASK=255.255.255.0
+```
+```
+[marcel@localhost network-scripts]$ cat ifcfg-enp0s8
+DEVICE=enp0s8
+
+BOOTPROTO=static
+ONBOOT=yes
+
+IPADDR=10.3.1.12
+NETMASK=255.255.255.0
+```
+
 🌞**Générer des requêtes ARP**
 
 - effectuer un `ping` d'une machine à l'autre
@@ -93,27 +114,98 @@ Vous aurez besoin de 3 VMs pour cette partie. **Réutilisez les deux VMs précé
 | `john`   | `10.3.1.11`   | no            |
 | `marcel` | no            | `10.3.2.12`   |
 
-> Je les appelés `marcel` et `john` PASKON EN A MAR des noms nuls en réseau 🌻
-
-```schema
-   john                router              marcel
-  ┌─────┐             ┌─────┐             ┌─────┐
-  │     │    ┌───┐    │     │    ┌───┐    │     │
-  │     ├────┤ho1├────┤     ├────┤ho2├────┤     │
-  └─────┘    └───┘    └─────┘    └───┘    └─────┘
 ```
+[john@localhost network-scripts]$ cat ifcfg-enp0s8
+DEVICE=enp0s8
 
+BOOTPROTO=static
+ONBOOT=yes
+
+IPADDR=10.3.1.11
+NETMASK=255.255.255.0
+```
+```
+[marcel@localhost network-scripts]$ cat ifcfg-enp0s8
+DEVICE=enp0s8
+
+BOOTPROTO=static
+ONBOOT=yes
+
+IPADDR=10.3.2.12
+NETMASK=255.255.255.0
+```
+```
+[routeur@localhost network-scripts]$ cat ifcfg-enp0s8
+DEVICE=enp0s8
+
+BOOTPROTO=static
+ONBOOT=yes
+
+IPADDR=10.3.1.254
+NETMASK=255.255.255.0
+```
+```
+[routeur@localhost network-scripts]$ cat ifcfg-enp0s9
+DEVICE=enp0s9
+
+BOOTPROTO=static
+ONBOOT=yes
+
+IPADDR=10.3.2.254
+NETMASK2=255.255.255.0
+```
 ### 1. Mise en place du routage
 
 🌞**Activer le routage sur le noeud `router`**
 
-> Cette étape est nécessaire car Rocky Linux c'est pas un OS dédié au routage par défaut. Ce n'est bien évidemment une opération qui n'est pas nécessaire sur un équipement routeur dédié comme du matériel Cisco.
+```
+[routeur@localhost ~]$ sudo firewall-cmd --get-active-zone
+public
+  interfaces: enp0s8 enp0s9
+
+[routeur@localhost ~]$ sudo firewall-cmd --add-masquerade --zone=public
+success
+
+[routeur@localhost ~]$ sudo firewall-cmd --add-masquerade --zone=public --permanent
+success
+```
 
 🌞**Ajouter les routes statiques nécessaires pour que `john` et `marcel` puissent se `ping`**
 
 - il faut taper une commande `ip route add` pour cela, voir mémo
 - il faut ajouter une seule route des deux côtés
+```
+[john@localhost network-scripts]$ cat route-enp0s8
+sudo ip route add 10.3.2.0/24 via 10.3.1.254 dev enp0s8
+```
+```
+[marcel@localhost network-scripts]$ cat route-enp0s8
+sudo ip route add 10.3.1.0/24 via 10.3.2.254 dev enp0s8
+```
 - une fois les routes en place, vérifiez avec un `ping` que les deux machines peuvent se joindre
+```
+[marcel@localhost ~]$ ping 10.3.1.11
+PING 10.3.1.11 (10.3.1.11) 56(84) bytes of data.
+64 bytes from 10.3.1.11: icmp_seq=1 ttl=63 time=0.901 ms
+64 bytes from 10.3.1.11: icmp_seq=2 ttl=63 time=0.910 ms
+64 bytes from 10.3.1.11: icmp_seq=3 ttl=63 time=1.29 ms
+^C
+--- 10.3.1.11 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 0.901/1.034/1.292/0.182 ms
+```
+```
+[john@localhost ~]$ ping 10.3.2.12
+PING 10.3.2.12 (10.3.2.12) 56(84) bytes of data.
+64 bytes from 10.3.2.12: icmp_seq=1 ttl=63 time=0.449 ms
+64 bytes from 10.3.2.12: icmp_seq=2 ttl=63 time=0.897 ms
+64 bytes from 10.3.2.12: icmp_seq=3 ttl=63 time=1.21 ms
+c64 bytes from 10.3.2.12: icmp_seq=4 ttl=63 time=1.21 ms
+^C
+--- 10.3.2.12 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3035ms
+rtt min/avg/max/mdev = 0.449/0.941/1.213/0.311 ms
+```
 
 ![THE SIZE](./pics/thesize.png)
 
@@ -122,9 +214,53 @@ Vous aurez besoin de 3 VMs pour cette partie. **Réutilisez les deux VMs précé
 🌞**Analyse des échanges ARP**
 
 - videz les tables ARP des trois noeuds
+```
+[routeur@localhost network-scripts]$ sudo ip neigh flush all
+[routeur@localhost network-scripts]$ ip neigh show
+10.3.1.1 dev enp0s8 lladdr 0a:00:27:00:00:03 REACHABLE
+```
+```
+[john@localhost network-scripts]$ sudo ip neigh flush all
+[john@localhost network-scripts]$ ip neigh show
+10.3.1.1 dev enp0s8 lladdr 0a:00:27:00:00:03 REACHABLE
+```
+```
+[marcel@localhost network-scripts]$ sudo ip neigh flush all
+[marcel@localhost network-scripts]$ ip neigh show
+10.3.2.1 dev enp0s8 lladdr 0a:00:27:00:00:08 REACHABLE
+```
 - effectuez un `ping` de `john` vers `marcel`
+```
+[john@localhost network-scripts]$ ping 10.3.2.12
+PING 10.3.2.12 (10.3.2.12) 56(84) bytes of data.
+64 bytes from 10.3.2.12: icmp_seq=1 ttl=63 time=2.21 ms
+64 bytes from 10.3.2.12: icmp_seq=2 ttl=63 time=1.98 ms
+64 bytes from 10.3.2.12: icmp_seq=3 ttl=63 time=1.78 ms
+^C
+--- 10.3.2.12 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2004ms
+rtt min/avg/max/mdev = 1.783/1.992/2.213/0.175 ms
+[john@localhost network-scripts]$`
+```
 - regardez les tables ARP des trois noeuds
+```
+[routeur@localhost network-scripts]$ ip neigh show
+10.3.1.11 dev enp0s8 lladdr 08:00:27:06:d1:52 STALE
+10.3.1.1 dev enp0s8 lladdr 0a:00:27:00:00:03 DELAY
+10.3.2.12 dev enp0s9 lladdr 08:00:27:b1:56:39 STALE
+```
+```
+[john@localhost network-scripts]$ ip neigh show
+10.3.1.1 dev enp0s8 lladdr 0a:00:27:00:00:03 DELAY
+10.3.1.254 dev enp0s8 lladdr 08:00:27:c7:87:80 STALE
+```
+```
+[marcel@localhost network-scripts]$ ip neigh show
+10.3.2.1 dev enp0s8 lladdr 0a:00:27:00:00:08 DELAY
+10.3.2.254 dev enp0s8 lladdr 08:00:27:95:bb:1b STALE
+```
 - essayez de déduire un peu les échanges ARP qui ont eu lieu
+
 - répétez l'opération précédente (vider les tables, puis `ping`), en lançant `tcpdump` sur `marcel`
 - **écrivez, dans l'ordre, les échanges ARP qui ont eu lieu, puis le ping et le pong, je veux TOUTES les trames** utiles pour l'échange
 
