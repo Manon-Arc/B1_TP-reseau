@@ -172,7 +172,6 @@ success
 
 🌞**Ajouter les routes statiques nécessaires pour que `john` et `marcel` puissent se `ping`**
 
-- il faut taper une commande `ip route add` pour cela, voir mémo
 - il faut ajouter une seule route des deux côtés
 ```
 [john@localhost network-scripts]$ cat route-enp0s8
@@ -214,6 +213,7 @@ rtt min/avg/max/mdev = 0.449/0.941/1.213/0.311 ms
 🌞**Analyse des échanges ARP**
 
 - videz les tables ARP des trois noeuds
+
 ```
 [routeur@localhost network-scripts]$ sudo ip neigh flush all
 [routeur@localhost network-scripts]$ ip neigh show
@@ -230,6 +230,14 @@ rtt min/avg/max/mdev = 0.449/0.941/1.213/0.311 ms
 10.3.2.1 dev enp0s8 lladdr 0a:00:27:00:00:08 REACHABLE
 ```
 - effectuez un `ping` de `john` vers `marcel`
+  - **le `tcpdump` doit être lancé sur la machine `john`**
+
+```
+[john@localhost ~]$ sudo tcpdump -i enp0s8 -c 10 -w tp3_routage_john.pcap not port 22
+[sudo] password for john:
+dropped privs to tcpdump
+tcpdump: listening on enp0s8, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+```
 ```
 [john@localhost network-scripts]$ ping 10.3.2.12
 PING 10.3.2.12 (10.3.2.12) 56(84) bytes of data.
@@ -259,24 +267,57 @@ rtt min/avg/max/mdev = 1.783/1.992/2.213/0.175 ms
 10.3.2.1 dev enp0s8 lladdr 0a:00:27:00:00:08 DELAY
 10.3.2.254 dev enp0s8 lladdr 08:00:27:95:bb:1b STALE
 ```
-- essayez de déduire un peu les échanges ARP qui ont eu lieu
 
-- répétez l'opération précédente (vider les tables, puis `ping`), en lançant `tcpdump` sur `marcel`
-- **écrivez, dans l'ordre, les échanges ARP qui ont eu lieu, puis le ping et le pong, je veux TOUTES les trames** utiles pour l'échange
+- essayez de déduire un les échanges ARP qui ont eu lieu
+  - en regardant la capture et/ou les tables ARP de tout le monde
 
-Par exemple (copiez-collez ce tableau ce sera le plus simple) :
+![tp3_routage_john.pcapng](tp3_routage_john.pcapng)
 
 | ordre | type trame  | IP source | MAC source              | IP destination | MAC destination            |
 |-------|-------------|-----------|-------------------------|----------------|----------------------------|
-| 1     | Requête ARP | x         | `marcel` `AA:BB:CC:DD:EE` | x              | Broadcast `FF:FF:FF:FF:FF` |
-| 2     | Réponse ARP | x         | ?                       | x              | `marcel` `AA:BB:CC:DD:EE`    |
-| ...   | ...         | ...       | ...                     |                |                            |
-| ?     | Ping        | ?         | ?                       | ?              | ?                          |
-| ?     | Pong        | ?         | ?                       | ?              | ?                          |
+| 1     | Requête ARP | x         | `john` `08:00:27:06:d1:52` | x              | `Broadcast` `FF:FF:FF:FF:FF` |
+| 2     | Réponse ARP | x         |`routeur (enp0s8)` `08:00:27:c7:87:80` | x              |`john` `08:00:27:06:d1:52`  |
+| 3     | ICMP        | `john` `10.3.2.11`| `john` `08:00:27:06:d1:52` | `marcel` `10.3.2.12`| `routeur (enp0s8)` `08:00:27:c7:87:80`                            |
+| 4     | ICMP        | `marcel` `10.3.2.12` | `routeur (enp0s8)` `08:00:27:c7:87:80`|`john` `10.3.2.11`| `john` `08:00:27:06:d1:52`|
+| 5     | ICMP        | `john` `10.3.2.11`| `john` `08:00:27:06:d1:52` | `marcel` `10.3.2.12`| `routeur (enp0s8)` `08:00:27:c7:87:80`                            |
+| 6     | ICMP        | `marcel` `10.3.2.12` | `routeur (enp0s8)` `08:00:27:c7:87:80`|`john` `10.3.2.11`| `john` `08:00:27:06:d1:52`|
 
-> Vous pourriez, par curiosité, lancer la capture sur `john` aussi, pour voir l'échange qu'il a effectué de son côté.
+- répétez l'opération précédente (vider les tables, puis `ping`), en lançant `tcpdump` sur `marcel`
 
-🦈 **Capture réseau `tp3_routage_marcel.pcapng`**
+```
+[routeur@localhost network-scripts]$ sudo ip neigh flush all
+[routeur@localhost network-scripts]$ ip neigh show
+10.3.1.1 dev enp0s8 lladdr 0a:00:27:00:00:03 REACHABLE
+```
+```
+[john@localhost network-scripts]$ sudo ip neigh flush all
+[john@localhost network-scripts]$ ip neigh show
+10.3.1.1 dev enp0s8 lladdr 0a:00:27:00:00:03 REACHABLE
+```
+```
+[marcel@localhost network-scripts]$ sudo ip neigh flush all
+[marcel@localhost network-scripts]$ ip neigh show
+10.3.2.1 dev enp0s8 lladdr 0a:00:27:00:00:08 REACHABLE
+```
+```
+[marcel@localhost ~]$ sudo tcpdump -i enp0s8 -c 10 -w tp3_routage_marcel.pcap not port 22
+[sudo] password for marcel:
+dropped privs to tcpdump
+tcpdump: listening on enp0s8, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+```
+
+écrivez, dans l'ordre, les échanges ARP qui ont eu lieu, puis le ping et le pong, je veux TOUTES les trames** utiles pour l'échange
+
+![tp3_routage_marcel.pcapng](tp3_routage_marcel.pcapng)
+
+| ordre | type trame  | IP source | MAC source              | IP destination | MAC destination            |
+|-------|-------------|-----------|-------------------------|----------------|----------------------------|
+| 1     | Requête ARP | x         | `routeur (enp0s9)` `08:00:27:95:bb:1b`| x|  `Broadcast` `FF:FF:FF:FF:FF`|
+| 2     | Réponse ARP | x         | `marcel` `08:00:27:b1:56:39` |x          | `routeur (enp0s9)` `08:00:27:95:bb:1b`
+| 3     | ICMP        |`routeur (enp0s9)` `10.3.2.254` | `routeur (enp0s9)` `08:00:27:95:bb:1b`| `marcel` `10.3.2.12`  | `marcel` `08:00:27:b1:56:39`                          |
+| 4     | ICMP        |`marcel` `10.3.2.12`| `marcel` `08:00:27:b1:56:39`  | `routeur (enp0s9)` `10.3.2.254`           | `routeur (enp0s9)` `08:00:27:95:bb:1b` |
+| 5     | ICMP        |`routeur (enp0s9)` `10.3.2.254` | `routeur (enp0s9)` `08:00:27:95:bb:1b`| `marcel` `10.3.2.12`  | `marcel` `08:00:27:b1:56:39`|
+| 6     | ICMP        |`marcel` `10.3.2.12`| `marcel` `08:00:27:b1:56:39`  | `routeur (enp0s9)` `10.3.2.254`           | `routeur (enp0s9)` `08:00:27:95:bb:1b|
 
 ### 3. Accès internet
 
@@ -320,7 +361,7 @@ On reprend la config précédente, et on ajoutera à la fin de cette partie une 
   │     │    ┌───┐    │     │    ┌───┐    │     │
   │     ├────┤ho1├────┤     ├────┤ho2├────┤     │
   └─────┘    └─┬─┘    └─────┘    └───┘    └─────┘
-   john        │
+   dhcp        │
   ┌─────┐      │
   │     │      │
   │     ├──────┘
@@ -343,7 +384,7 @@ On reprend la config précédente, et on ajoutera à la fin de cette partie une 
   - une route par défaut
   - un serveur DNS à utiliser
 - récupérez de nouveau une IP en DHCP sur `bob` pour tester :
-  - `marcel` doit avoir une IP
+  - `bob` doit avoir une IP
     - vérifier avec une commande qu'il a récupéré son IP
     - vérifier qu'il peut `ping` sa passerelle
   - il doit avoir une route par défaut
