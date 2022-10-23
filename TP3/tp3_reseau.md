@@ -325,8 +325,39 @@ tcpdump: listening on enp0s8, link-type EN10MB (Ethernet), snapshot length 26214
 
 - ajoutez une carte NAT en 3ème inteface sur le `router` pour qu'il ait un accès internet
 - ajoutez une route par défaut à `john` et `marcel`
+```
+[john@localhost network-scripts]$ cat route-enp0s8
+10.3.2.0/24 via 10.3.1.254 dev enp0s8
+10.0.5.15/24 via 10.3.1.254 dev enp0s8
+```
+```
+[marcel@localhost network-scripts]$ cat route-enp0s8
+10.3.1.0/24 via 10.3.2.254 dev enp0s8
+10.0.5.15/24 via 10.3.2.254 dev enp0s8
+```
   - vérifiez que vous avez accès internet avec un `ping`
-  - le `ping` doit être vers une IP, PAS un nom de domaine
+
+```
+[marcel@localhost network-scripts]$ ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=13.1 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=118 time=12.3 ms
+^C
+--- 8.8.8.8 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 12.275/12.664/13.053/0.389 ms
+```
+```
+[john@localhost network-scripts]$ ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=12.8 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=118 time=12.6 ms
+^C
+--- 8.8.8.8 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 12.638/12.734/12.830/0.096 ms
+```
+
 - donnez leur aussi l'adresse d'un serveur DNS qu'ils peuvent utiliser
   - vérifiez que vous avez une résolution de noms qui fonctionne avec `dig`
   - puis avec un `ping` vers un nom de domaine
