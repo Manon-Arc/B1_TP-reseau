@@ -611,7 +611,7 @@ subnet 10.3.1.0 netmask 255.255.255.0 {
 range 10.3.1.2 10.3.1.253;
 option routers 10.3.1.254;
 option subnet-mask 255.255.255.0;
-option domain-name-servers 1.1.1.1;
+option domain-name-servers 8.8.8.8;
 }
 ```
 - récupérez de nouveau une IP en DHCP sur `bob`
@@ -711,7 +711,31 @@ rtt min/avg/max/mdev = 24.943/28.377/31.812/3.434 ms
 🌞**Analyse de trames**
 
 - lancer une capture à l'aide de `tcpdump` afin de capturer un échange DHCP
+```
+[bob@localhost ~]$ sudo tcpdump -i enp0s8 -c 10 -w tp3_routage_internet.pcap not port 22
+dropped privs to tcpdump
+tcpdump: listening on enp0s8, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+```
 - demander une nouvelle IP afin de générer un échange DHCP
+```
+[bob@localhost ~]$ sudo dhclient
+```
 - exportez le fichier `.pcapng`
+- repérez, dans les trames DHCP observées dans Wireshark, les infos que votre serveur a fourni au client :
+
+ - l'IP fournie au client
+```
+Destination Address: 10.3.1.35
+```
+  - l'adresse IP de la passerelle
+```
+Router: 10.3.1.254
+``` 
+  - l'adresse du serveur DNS que vous proposez au client
+```
+Domain Name Serveur : 8.8.8.8
+``` 
 
 🦈 **Capture réseau `tp3_dhcp.pcapng`**
+
+![tp3_dhcp.pcapng](tp3_dhcp.pcapng)
