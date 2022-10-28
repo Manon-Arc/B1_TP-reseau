@@ -5,44 +5,97 @@
 🌞 **Déterminez, pour ces 5 applications, si c'est du TCP ou de l'UDP**
 
 ### OperaGx (TCP):
+
 ![tp4_operagx.pcapng](tp4_operagx.pcapng)
 
+```
+PS C:\Users\Utilisateur> netstat -p TCP -b -n
+
+Connexions actives
+
+  Proto  Adresse locale         Adresse distante       État
+  TCP    10.33.16.34:61802     66.102.1.188:5228     ESTABLISHED
+ [opera.exe]
+```
  - IP et port du serveur auquel on se connecte \
  **ip** :  66.102.1.188 \
  **port** : 5228 
  - le port local que l'on ouvre pour se connecter \
  **port** : 61802
 
- ### FallGuys (UCP) :
+ ### FallGuys (UDP) :
+
 ![tp4_FallGuys.pcapng](tp4_FallGuye.pcapng)
 
+
+```
+PS C:\Users\Utilisateur> netstat -p UDP -b -n -a
+
+Connexions actives
+
+  Proto  Adresse locale         Adresse distante       État
+  UDP    10.33.16.34:55208     135.76.11.229:8077     ESTABLISHED
+ [fall_guys_client.exe]
+```
  - IP et port du serveur auquel on se connecte \
  **ip :** 135.76.11.229 \
  **port :** 8077 
  - le port local que l'on ouvre pour se connecter \
- **port :** 55208 \
+ **port :** 55208 
 --> Dans ce cas, on joue le rôle du serveur et c'est le jeu qui se connecte en tant que client.
 
  ### Discord (TCP) :
+
 ![tp4_discord.pcapng](tp4_discord.pcapng)
 
+```
+PS C:\Users\Utilisateur> netstat -p TCP -b -n
+
+Connexions actives
+
+  Proto  Adresse locale         Adresse distante       État
+  TCP    10.33.16.34:61680     91.228.167.194:8883     ESTABLISHED
+ [discord.exe]
+```
  - IP et port du serveur auquel on se connecte \
  **ip :** 91.228.167.194 \
  **port :** 8883 
  - le port local que l'on ouvre pour se connecter \
  **port :** 61680
 
- ### Spotify (UCP) :
+ ### Spotify (TDP) : Spotify utilise également de l'UDP et du QUIC
+
 ![tp4_spotify.pcapng](tp4_spotify.pcapng)
 
+```
+PS C:\Users\Utilisateur> netstat -p tcp -b -n
+
+Connexions actives
+
+  Proto  Adresse locale         Adresse distante       État
+  TCP    10.33.16.34:61891      217.128.86.180:2222     ESTABLISHED
+ [Spotify.exe]
+```
+
  - IP et port du serveur auquel on se connecte \
- **ip :**  35.186.224.25  \
- **port :** 443 
+ **ip :**  217.128.86.180  \
+ **port :** 2222 
  - le port local que l'on ouvre pour se connecter \
- **port :** 55629 \
+ **port :** 61891 
 
  ###  Firefox (TCP) :
+
 ![tp4_firefox.pcapng](tp4_firefox.pcapng)
+
+```
+PS C:\Users\Utilisateur> netstat -p TCP -b -n
+
+Connexions actives
+
+  Proto  Adresse locale         Adresse distante       État
+  TCP    10.33.16.34:55405     91.68.245.144:443     ESTABLISHED
+ [firefox.exe]
+```
 
  - IP et port du serveur auquel on se connecte \
  ip : 91.68.245.144 \
