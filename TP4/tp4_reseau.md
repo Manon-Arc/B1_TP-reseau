@@ -4,6 +4,8 @@
 
 🌞 **Déterminez, pour ces 5 applications, si c'est du TCP ou de l'UDP**
 
+🌞 **Demandez l'avis à votre OS**
+
 ### OperaGx (TCP):
 
 ![tp4_operagx.pcapng](tp4_operagx.pcapng)
@@ -104,57 +106,33 @@ Connexions actives
  port : 55405 \
 
 
-🌞 **Demandez l'avis à votre OS**
-
-- votre OS est responsable de l'ouverture des ports, et de placer un programme en "écoute" sur un port
-- il est aussi responsable de l'ouverture d'un port quand une application demande à se connecter à distance vers un serveur
-- bref il voit tout quoi
-- utilisez la commande adaptée à votre OS pour repérer, dans la liste de toutes les connexions réseau établies, la connexion que vous voyez dans Wireshark, pour chacune des 5 applications
-
-**Il faudra ajouter des options adaptées aux commandes pour y voir clair. Pour rappel, vous cherchez des connexions TCP ou UDP.**
-
-```
-# MacOS
-$ netstat
-
-# GNU/Linux
-$ ss
-
-# Windows
-$ netstat
-```
-
-🦈🦈🦈🦈🦈 **Bah ouais, captures Wireshark à l'appui évidemment.** Une capture pour chaque application, qui met bien en évidence le trafic en question.
-
 # II. Mise en place
 
 ## 1. SSH
 
-🖥️ **Machine `node1.tp4.b1`**
-
-- n'oubliez pas de dérouler la checklist (voir [les prérequis du TP](#0-prérequis))
-- donnez lui l'adresse IP `10.4.1.11/24`
-
-Connectez-vous en SSH à votre VM.
-
 🌞 **Examinez le trafic dans Wireshark**
 
-- **déterminez si SSH utilise TCP ou UDP**
-  - pareil réfléchissez-y deux minutes, logique qu'on utilise pas UDP non ?
-- **repérez le *3-Way Handshake* à l'établissement de la connexion**
-  - c'est le `SYN` `SYNACK` `ACK`
-- **repérez du trafic SSH**
-- **repérez le FIN ACK à la fin d'une connexion**
-- entre le *3-way handshake* et l'échange `FIN`, c'est juste une bouillie de caca chiffré, dans un tunnel TCP
-
-> **SUR WINDOWS, pour cette étape uniquement**, utilisez Git Bash et PAS Powershell. Avec Powershell il sera très difficile d'observer le FIN ACK.
+![tp4_ssh.pcapng](tp4_ssh.pcapng)
 
 🌞 **Demandez aux OS**
 
 - repérez, avec une commande adaptée (`netstat` ou `ss`), la connexion SSH depuis votre machine
+```
+PS C:\Users\Utilisateur> netstat -p TCP -n -b
+
+Connexions actives
+
+  Proto  Adresse locale         Adresse distante       État
+  TCP    10.4.1.1:63264         10.4.1.11:22           ESTABLISHED
+ [ssh.exe]
+```
 - ET repérez la connexion SSH depuis votre VM
 
-🦈 **Je veux une capture clean avec le 3-way handshake, un peu de trafic au milieu et une fin de connexion**
+```
+[manon@node1 ~]$ ss
+Netid              State               Recv-Q               Send-Q                                           Local Address:Port                              Peer Address:Port               Process
+tcp                ESTAB               0                    0                                                    10.4.1.11:ssh                                   10.4.1.1:63264
+```
 
 ## 2. Routage
 
@@ -173,72 +151,64 @@ Ouais, un peu de répétition, ça fait jamais de mal. On va créer une machine 
 
 ## 1. Présentation
 
-Un serveur DNS est un serveur qui est capable de répondre à des requêtes DNS.
-
-Une requête DNS est la requête effectuée par une machine lorsqu'elle souhaite connaître l'adresse IP d'une machine, lorsqu'elle connaît son nom.
-
-Par exemple, si vous ouvrez un navigateur web et saisissez `https://www.google.com` alors une requête DNS est automatiquement effectuée par votre PC pour déterminez à quelle adresse IP correspond le nom `www.google.com`.
-
-> La partie `https://` ne fait pas partie du nom de domaine, ça indique simplement au navigateur la méthode de connexion. Ici, c'est HTTPS.
-
-Dans cette partie, on va monter une VM qui porte un serveur DNS. Ce dernier répondra aux autres VMs du LAN quand elles auront besoin de connaître des noms. Ainsi, ce serveur pourra :
-
-- résoudre des noms locaux
-  - vous pourrez `ping node1.tp4.b1` et ça fonctionnera
-  - mais aussi `ping www.google.com` et votre serveur DNS sera capable de le résoudre aussi
-
-*Dans la vraie vie, il n'est pas rare qu'une entreprise gère elle-même ses noms de domaine, voire gère elle-même son serveur DNS. C'est donc du savoir ré-utilisable pour tous qu'on voit ici.*
-
-> En réalité, ce n'est pas votre serveur DNS qui pourra résoudre `www.google.com`, mais il sera capable de *forward* (faire passer) votre requête à un autre serveur DNS qui lui, connaît la réponse.
-
-![Haiku DNS](./pics/haiku_dns.png)
-
 ## 2. Setup
 
 🖥️ **Machine `dns-server.tp4.b1`**
 
-- n'oubliez pas de dérouler la checklist (voir [les prérequis du TP](#0-prérequis))
-- donnez lui l'adresse IP `10.4.1.201/24`
-
-Installation du serveur DNS :
-
-```bash
-# assurez-vous que votre machine est à jour
-$ sudo dnf update -y
-
-# installation du serveur DNS, son p'tit nom c'est BIND9
-$ sudo dnf install -y bind bind-utils
+➜ **Fichier de conf principal**
 ```
+[manon@dns-serveur ~]$ sudo cat /etc/named.conf
+//
+// named.conf
+//
+// Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
+// server as a caching only nameserver (as a localhost DNS resolver only).
+//
+// See /usr/share/doc/bind*/sample/ for example named configuration files.
+//
 
-La configuration du serveur DNS va se faire dans 3 fichiers essentiellement :
-
-- **un fichier de configuration principal**
-  - `/etc/named.conf`
-  - on définit les trucs généraux, comme les adresses IP et le port où on veu écouter
-  - on définit aussi un chemin vers les autres fichiers, les fichiers de zone
-- **un fichier de zone**
-  - `/var/named/tp4.b1.db`
-  - je vous préviens, la syntaxe fait mal
-  - on peut y définir des correspondances `IP ---> nom`
-- **un fichier de zone inverse**
-  - `/var/named/tp4.b1.rev`
-  - on peut y définir des correspondances `nom ---> IP`
-
-➜ **Allooooons-y, fichier de conf principal**
-
-```bash
-# éditez le fichier de config principal pour qu'il ressemble à :
-$ sudo cat /etc/named.conf
 options {
         listen-on port 53 { 127.0.0.1; any; };
         listen-on-v6 port 53 { ::1; };
         directory       "/var/named";
-[...]
+        dump-file       "/var/named/data/cache_dump.db";
+        statistics-file "/var/named/data/named_stats.txt";
+        memstatistics-file "/var/named/data/named_mem_stats.txt";
+        secroots-file   "/var/named/data/named.secroots";
+        recursing-file  "/var/named/data/named.recursing";
         allow-query     { localhost; any; };
         allow-query-cache { localhost; any; };
+        /*
+         - If you are building an AUTHORITATIVE DNS server, do NOT enable recursion.
+         - If you are building a RECURSIVE (caching) DNS server, you need to enable
+           recursion.
+         - If your recursive DNS server has a public IP address, you MUST enable access
+           control to limit queries to your legitimate users. Failing to do so will
+           cause your server to become part of large scale DNS amplification
 
+           attacks. Implementing BCP38 within your network would greatly
+           reduce such attack surface
+        */
         recursion yes;
-[...]
+
+        dnssec-validation yes;
+
+        managed-keys-directory "/var/named/dynamic";
+        geoip-directory "/usr/share/GeoIP";
+
+        pid-file "/run/named/named.pid";
+        session-keyfile "/run/named/session.key";
+
+        /* https://fedoraproject.org/wiki/Changes/CryptoPolicy */
+        include "/etc/crypto-policies/back-ends/bind.config";
+};
+
+logging {
+        channel default_debug {
+                file "data/named.run";
+                severity dynamic;
+        };
+};
 # référence vers notre fichier de zone
 zone "tp4.b1" IN {
      type master;
@@ -253,7 +223,17 @@ zone "1.4.10.in-addr.arpa" IN {
      allow-update { none; };
      allow-query { any; };
 };
+
+
+zone "." IN {
+        type hint;
+        file "named.ca";
+};
+
+include "/etc/named.rfc1912.zones";
+include "/etc/named.root.key";
 ```
+
 
 ➜ **Et pour les fichiers de zone**
 
