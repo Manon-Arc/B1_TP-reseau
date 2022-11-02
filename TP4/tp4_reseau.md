@@ -2,9 +2,10 @@
 
 # I. First steps
 
-🌞 **Déterminez, pour ces 5 applications, si c'est du TCP ou de l'UDP**
+🌞 **Déterminez, pour 5 applications, si c'est du TCP ou de l'UDP**
 
 🌞 **Demandez l'avis à votre OS**
+- repérez, avec une commande adaptée (`netstat` ou `ss`), la connexion SSH depuis votre machine
 
 ### OperaGx (TCP):
 
@@ -109,6 +110,7 @@ Connexions actives
 # II. Mise en place
 
 ## 1. SSH
+🖥️ **Machine `node1.tp4.b1`**
 
 🌞 **Examinez le trafic dans Wireshark**
 
@@ -126,7 +128,7 @@ Connexions actives
   TCP    10.4.1.1:63264         10.4.1.11:22           ESTABLISHED
  [ssh.exe]
 ```
-- ET repérez la connexion SSH depuis votre VM
+- Et repérez la connexion SSH depuis votre VM
 
 ```
 [manon@node1 ~]$ ss
@@ -136,14 +138,7 @@ tcp                ESTAB               0                    0                   
 
 ## 2. Routage
 
-Ouais, un peu de répétition, ça fait jamais de mal. On va créer une machine qui sera notre routeur, et **permettra à toutes les autres machines du réseau d'avoir Internet.**
-
 🖥️ **Machine `router.tp4.b1`**
-
-- n'oubliez pas de dérouler la checklist (voir [les prérequis du TP](#0-prérequis))
-- donnez lui l'adresse IP `10.4.1.254/24` sur sa carte host-only
-- ajoutez-lui une carte NAT, qui permettra de donner Internet aux autres machines du réseau
-- référez-vous au TP précédent
 
 # III. DNS
 
@@ -295,21 +290,6 @@ $TTL 86400
              └─704 /usr/sbin/named -u named -c /etc/named.conf
 ```
 
-➜ **Une fois ces 3 fichiers en place, démarrez le service DNS**
-
-```bash
-# Démarrez le service tout de suite
-$ sudo systemctl start named
-
-# Faire en sorte que le service démarre tout seul quand la VM s'allume
-$ sudo systemctl enable named
-
-# Obtenir des infos sur le service
-$ sudo systemctl status named
-
-# Obtenir des logs en cas de probème
-$ sudo journalctl -xe -u named
-```
 - commande `ss` qui prouve que le service écoute bien sur un port
 
 ```
@@ -320,7 +300,7 @@ LISTEN            0                 10                              10.4.1.201:5
 
 🌞 **Ouvrez le bon port dans le firewall**
 
-- grâce à la commande `ss` vous devrez avoir repéré sur quel port tourne le service
+- grâce à la commande `ss` vous devrez avoir repéré sur quel port tourne le service \
 **port** : 53
 - ouvrez ce port dans le firewall de la machine `dns-server.tp4.b1`
 ```
@@ -343,12 +323,134 @@ nameserver 10.4.1.201
 ```
 - assurez vous que vous pouvez :
   - résoudre des noms comme `node1.tp4.b1` et `dns-server.tp4.b1`
-  - mais aussi des noms comme `www.google.com`
+```
+[manon@node1 ~]$ dig node1.tp4.b1
+
+; <<>> DiG 9.16.23-RH <<>> node1.tp4.b1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 46124
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 63d7d4e4ca6b2eb701000000636230bc3684a7d6d00f5f99 (good)
+;; QUESTION SECTION:
+;node1.tp4.b1.                  IN      A
+
+;; ANSWER SECTION:
+node1.tp4.b1.           86400   IN      A       10.4.1.11
+
+;; Query time: 1 msec
+;; SERVER: 10.4.1.201#53(10.4.1.201)
+;; WHEN: Wed Nov 02 09:56:28 CET 2022
+;; MSG SIZE  rcvd: 85
+
+```
+```
+[manon@node1 ~]$ dig dns-server.tp4.b1
+
+; <<>> DiG 9.16.23-RH <<>> dns-server.tp4.b1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 32167
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: e7688d1b5de248c6010000006362311c24f7fa06250e0082 (good)
+;; QUESTION SECTION:
+;dns-server.tp4.b1.             IN      A
+
+;; ANSWER SECTION:
+dns-server.tp4.b1.      86400   IN      A       10.4.1.201
+
+;; Query time: 1 msec
+;; SERVER: 10.4.1.201#53(10.4.1.201)
+;; WHEN: Wed Nov 02 09:58:04 CET 2022
+;; MSG SIZE  rcvd: 90
+```
+- mais aussi des noms comme `www.google.com`
+```
+[manon@node1 ~]$ dig www.google.com
+
+; <<>> DiG 9.16.23-RH <<>> www.google.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 49839
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 0e42732e2fe376a501000000636230945fd22ee8a5d5c896 (good)
+;; QUESTION SECTION:
+;www.google.com.                        IN      A
+
+;; ANSWER SECTION:
+www.google.com.         300     IN      A       142.250.201.164
+
+;; Query time: 461 msec
+;; SERVER: 10.4.1.201#53(10.4.1.201)
+;; WHEN: Wed Nov 02 09:55:48 CET 2022
+;; MSG SIZE  rcvd: 87
+```
 
 🌞 **Sur votre PC**
 
 - utilisez une commande pour résoudre le nom `node1.tp4.b1` en utilisant `10.4.1.201` comme serveur DNS
 
-> Le fait que votre serveur DNS puisse résoudre un nom comme `www.google.com`, ça s'appelle la récursivité et c'est activé avec la ligne `recursion yes;` dans le fichier de conf.
+On cherche l'index de la carte reseau "Wifi" :
+```
+PS C:\Users\Utilisateur> Get-DnsClientServerAddress
+InterfaceAlias               Interface Address ServerAddresses
+                             Index     Family
+--------------               --------- ------- ---------------
+Wi-Fi                                7 IPv4    {192.168.2.1}
+Wi-Fi                                7 IPv6    {}
+```
+```
+PS C:\Users\Utilisateur> netsh interface ipv4 add dnsserver "Wi-Fi" 10.4.1.201 index=7
+```
+```
+PS C:\Users\Utilisateur> ipconfig /all
+Carte réseau sans fil Wi-Fi :
+
+   Suffixe DNS propre à la connexion. . . : home
+   Description. . . . . . . . . . . . . . : Intel(R) Wi-Fi 6 AX201 160MHz
+   Adresse physique . . . . . . . . . . . : F2-9B-85-D2-57-A9
+   DHCP activé. . . . . . . . . . . . . . : Oui
+   Adresse IPv6. . . . . . . . . . . . . .: 2a01:cb19:8f4:6c00:d478:f3cd:3e0f:b798(préféré)
+   Adresse IPv6 temporaire . . . . . . . .: 2a01:cb19:8f4:6c00:865:df38:6bf4:81b6(préféré)
+   Adresse IPv6 de liaison locale. . . . .: fe80::d478:f3cd:3e0f:b798%7(préféré)
+   Adresse IPv4. . . . . . . . . . . . . .: 192.168.2.17(préféré)
+   Masque de sous-réseau. . . . . . . . . : 255.255.255.0
+   Bail obtenu. . . . . . . . . . . . . . : mercredi 2 novembre 2022 10:29:58
+   Bail expirant. . . . . . . . . . . . . : jeudi 3 novembre 2022 10:48:51
+   Passerelle par défaut. . . . . . . . . : fe80::8ef8:13ff:fe2f:234e%7
+                                       192.168.2.1
+   Serveur DHCP . . . . . . . . . . . . . : 192.168.2.1
+   IAID DHCPv6 . . . . . . . . . . . : 133340037
+   DUID de client DHCPv6. . . . . . . . : 00-03-00-01-F2-9B-85-D2-57-A9
+   Serveurs DNS. . .  . . . . . . . . . . : 10.4.1.201
+                                       2a01:cb19:8f4:6c00:8ef8:13ff:fe2f:234e
+   NetBIOS sur Tcpip. . . . . . . . . . . : Activé
+   Liste de recherche de suffixes DNS propres à la connexion :
+                                       home
+```
+```
+PS C:\Users\Utilisateur> nslookup
+Serveur par dÚfaut :   dns-server.tp4.b1
+Address:  10.4.1.201
+
+> node1.tp4.b1
+Serveur :   dns-server.tp4.b1
+Address:  10.4.1.201
+
+Nom :    node1.tp4.b1
+Address:  10.4.1.11
+```
+
 
 🦈 **Capture d'une requête DNS vers le nom `node1.tp4.b1` ainsi que la réponse**
+
+![dns.node1.tp4.b1](dns.node1.tp4.b1.pcapng)
