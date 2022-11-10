@@ -214,7 +214,7 @@ net.ipv6.conf.all.forwarding = 1
     [manon@vpn2 ~]$ sudo firewall-cmd --zone=public --add-port=51820/udp    --permanent
     success
     ```
-    - on ajoute le dispositif wg0 pour permettre au trafic sur l'interface VPN d'atteindre d'autres interfaces sur le serveur WireGuard.
+    - on ajoute l'interface wg0 pour permettre au trafic sur l'interface VPN d'atteindre d'autres interfaces sur le serveur WireGuard.
     ```
     [manon@vpn2 ~]$ sudo firewall-cmd --zone=internal --add-interface=wg0 --permanent
     success
@@ -249,7 +249,7 @@ public (active)
 wg0
 ```
 - on configure Wireguard pour qu'il démarre au démarrage : 
-on active le service wg-quick pour le dispositif wg0 en l'ajoutant à systemctl:
+on active le service wg-quick pour l'interface wg0 en l'ajoutant à systemctl:
 ```
 [manon@vpn2 ~]$ sudo systemctl enable wg-quick@wg0.service
 Created symlink /etc/systemd/system/multi-user.target.wants/wg-quick@wg0.service → /usr/lib/systemd/system/wg-quick@.service.
@@ -281,3 +281,74 @@ Nov 08 13:38:37 vpn2.lab.ingesup wg-quick[11281]: [#] ip link set mtu 1420 up de
 Nov 08 13:38:37 vpn2.lab.ingesup systemd[1]: Started WireGuard via wg-quick(8) for wg0.
 ```
 - on installe Wireguard sur le client 
+- Wireguard génère automatiquement une paire de clés 
+- on créer un fichier de configuration 
+```
+[Interface]
+PrivateKey = QPZe0DOp/vIXHIekaJmGq05m43WpqzndXKm12k9fA0U=
+Address = 10.8.0.2/24, fde4:747e:e5e3::2/64
+
+[Peer]
+PublicKey = +aWHFsKyySgp+lfMq2ofNVVvwAMXOy8vQ8YpAMuqDQw=
+AllowedIPs = 10.8.0.0/24, fde4:747e:e5e3::/64
+Endpoint = 192.168.1.3:51820
+```
+- on configure une route pour acheminer tout le trafic par le tunnel vpn :
+
+    - on cherche la passerelle par defaut utilisé par le système :
+    ```
+    PS C:\Users\Utilisateur> route print -4
+    IPv4 Table de routage
+    Itinéraires actifs :
+    Destination réseau    Masque réseau  Adr. passerelle   Adr. interface Métrique
+          0.0.0.0          0.0.0.0     10.33.19.254      10.33.16.34     35
+    ```
+    - on modifie le fichier de configuration du client :
+    ```
+    [Interface]
+    PrivateKey = QPZe0DOp/vIXHIekaJmGq05m43WpqzndXKm12k9fA0U=
+    Address = 10.8.0.2/24, fde4:747e:e5e3::2/64
+    PostUp = ip route add table 200 default via 10.8.0.1/24
+    PreDown = ip route delete table 200 default via 10.8.0.1/24
+
+    [Peer]
+    PublicKey = +aWHFsKyySgp+lfMq2ofNVVvwAMXOy8vQ8YpAMuqDQw=
+    AllowedIPs = 10.8.0.0/24, fde4:747e:e5e3::/64
+    Endpoint = 192.168.1.3:51820
+
+    ```
+- on configure les resolvers DNS :
+    
+    - on modifie le fichier de configuration : 
+    ```
+    [Interface]
+    PrivateKey = QPZe0DOp/vIXHIekaJmGq05m43WpqzndXKm12k9fA0U=
+    Address = 10.8.0.2/24, fde4:747e:e5e3::2/64
+    DNS = 1.1.1.1, 8.8.8.8
+    PostUp = ip route add table 200 default via 10.8.0.1/24
+    PreDown = ip route delete table 200 default via 10.8.0.1/24
+
+    [Peer]
+    PublicKey = +aWHFsKyySgp+lfMq2ofNVVvwAMXOy8vQ8YpAMuqDQw=
+    AllowedIPs = 10.8.0.0/24, fde4:747e:e5e3::/64
+    Endpoint = 192.168.1.3:51820
+    ```
+- on ajoute la clé publique du client sur le serveur :
+    ```
+    [manon@vpn2 ~]$ sudo wg set wg0 peer FfjcS+RQSK+KObq8LYJy525hiFHioAiY6cfAM9xqpEQ= allowed-ips "10.8.0.2,fde4:747e:e5e3::2"
+    ```
+    ```
+        [manon@vpn2 ~]$ sudo wg
+    [sudo] password for manon:
+    interface: wg0
+      public key: +aWHFsKyySgp+lfMq2ofNVVvwAMXOy8vQ8YpAMuqDQw=
+      private key: (hidden)
+      listening port: 51820
+
+    peer: FfjcS+RQSK+KObq8LYJy525hiFHioAiY6cfAM9xqpEQ=
+      endpoint: 192.168.1.1:59747
+      allowed ips: 10.8.0.2/32, fde4:747e:e5e3::2/128
+      latest handshake: 8 minutes, 51 seconds ago
+      transfer: 1.27 KiB received, 124 B sent
+    ```
+- on démarre le tunnel 
