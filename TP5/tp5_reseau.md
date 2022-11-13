@@ -164,7 +164,7 @@ AOr2v73F9p5DcbXXgPYRVDa6B5BojyOzF/zxVchY7FM=
     [manon@vpn2 etc]$ cat /var/lib/dbus/machine-id
     c1c6b326f7834aca950baf5211ca7609
     ```
-    - on combine l'horodatage avec machine-id et on hacher la valeur à l'aide de l'algorithme SHA-1
+    - on combine l'horodatage avec machine-id et on hache la valeur à l'aide de l'algorithme SHA-1
     ```
     [manon@vpn2 etc]$ printf 1667905833986197739c1c6b326f7834aca950baf5211ca7609 | sha1sum
     1f14da58ed5e4e803da8896f6c8f46e4747ee5e3  -
@@ -222,6 +222,15 @@ net.ipv6.conf.all.forwarding = 1
     [manon@vpn2 ~]$ sudo firewall-cmd --zone=internal --add-interface=wg0 --permanent
     success
     ```
+    - on ajoute des règles de masquages :
+    ```
+    [manon@vpn2 ~]$ sudo firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 source address=10.8.0.0/24 masquerade' --permanent
+    [sudo] password for manon:
+    success
+    [manon@vpn2 ~]$ sudo firewall-cmd --zone=public --add-rich-rule='rule family=ipv6 source address=fde4:747e:e5e3::/64 masquerade' --permanent
+    success
+    ```
+    - on recharge le pare-feu :
     ```
     [manon@vpn2 ~]$ sudo firewall-cmd --reload
     success
