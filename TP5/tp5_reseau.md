@@ -2,6 +2,7 @@
 
 
 # I. Setup machine distante
+<span style="color:red"> ***le VPN est sur une VM***</span>
 
 Assurez-vous d'être connecté SSH à la machine distante pour la suite.
 
@@ -125,17 +126,18 @@ HostbasedAuthentication no
 ChallengeResponseAuthentication no
 ```
 
-# II. Serveur VPN (Wireguard)
+# II. Serveur VPN (Wireguard) :
+## Configuration du serveur :
 
-- on installe deux référentiels de logiciels supplémentaires à l'index de packages du serveur : **epel**, et **elrepo**
+- on installe deux référentiels de logiciels supplémentaires à l'index de packages du serveur : **epel**, et **elrepo** :
 ```
 [manon@vpn2 ~]$ sudo dnf install elrepo-release epel-release -y
 ```
-- on installe  Wireguard 
+- on installe  Wireguard :
 ```
 [manon@vpn2 ~]$ sudo dnf install kmod-wireguard wireguard-tools -y
 ```
-- on génère une clé privé sur le serveur et on lui supprime toutes les autorisations pour que seul root puisse y accéder
+- on génère une clé privé sur le serveur et on lui supprime toutes les autorisations pour que seul root puisse y accéder :
 ```
 [manon@vpn2 ~]$ wg genkey | sudo tee /etc/wireguard/private.key
 [sudo] password for manon:
@@ -144,7 +146,7 @@ AOr2v73F9p5DcbXXgPYRVDa6B5BojyOzF/zxVchY7FM=
 ```
 [manon@vpn2 ~]$ sudo chmod go= /etc/wireguard/private.key
 ```
-- on génère une clé publique sur le serveur correspondant à la clé privé 
+- on génère une clé publique sur le serveur correspondant à la clé privé :
 ```
 [manon@vpn2 ~]$ sudo cat /etc/wireguard/private.key | wg pubkey | sudo tee /etc/wireguard/public.key
 [sudo] password for manon:
@@ -154,7 +156,7 @@ AOr2v73F9p5DcbXXgPYRVDa6B5BojyOzF/zxVchY7FM=
 10.8.0.0/24
 
 - Choix de la plage IPv6 :
-    - on collecte un horodatage 
+    - on collecte un horodatage :
      ```
     [manon@vpn2 etc]$ date +%s%N
     1667905833986197739
@@ -164,7 +166,7 @@ AOr2v73F9p5DcbXXgPYRVDa6B5BojyOzF/zxVchY7FM=
     [manon@vpn2 etc]$ cat /var/lib/dbus/machine-id
     c1c6b326f7834aca950baf5211ca7609
     ```
-    - on combine l'horodatage avec machine-id et on hache la valeur à l'aide de l'algorithme SHA-1
+    - on combine l'horodatage avec machine-id et on hache la valeur à l'aide de l'algorithme SHA-1 :
     ```
     [manon@vpn2 etc]$ printf 1667905833986197739c1c6b326f7834aca950baf5211ca7609 | sha1sum
     1f14da58ed5e4e803da8896f6c8f46e4747ee5e3  -
@@ -212,12 +214,12 @@ net.ipv4.ip_forward = 1
 net.ipv6.conf.all.forwarding = 1
 ```
 - on configure le firewall :
-    - autorise l'accès  au service Wireguard sur le port UDP 51820
+    - on autorise l'accès  au service Wireguard sur le port UDP 51820 :
     ```
     [manon@vpn2 ~]$ sudo firewall-cmd --zone=public --add-port=51820/udp    --permanent
     success
     ```
-    - on ajoute l'interface wg0 pour permettre au trafic sur l'interface VPN d'atteindre d'autres interfaces sur le serveur WireGuard.
+    - on ajoute l'interface wg0 pour permettre au trafic sur l'interface VPN d'atteindre d'autres interfaces sur le serveur WireGuard :
     ```
     [manon@vpn2 ~]$ sudo firewall-cmd --zone=internal --add-interface=wg0 --permanent
     success
@@ -260,8 +262,8 @@ public (active)
 [manon@vpn2 ~]$ sudo firewall-cmd --zone=internal --list-interfaces
 wg0
 ```
-- on configure Wireguard pour qu'il démarre au démarrage : 
-on active le service wg-quick pour l'interface wg0 en l'ajoutant à systemctl:
+- on configure Wireguard pour qu'il démarre au démarrage : \
+on active le service wg-quick pour l'interface wg0 en l'ajoutant à systemctl :
 ```
 [manon@vpn2 ~]$ sudo systemctl enable wg-quick@wg0.service
 Created symlink /etc/systemd/system/multi-user.target.wants/wg-quick@wg0.service → /usr/lib/systemd/system/wg-quick@.service.
@@ -292,9 +294,10 @@ Nov 08 13:38:37 vpn2.lab.ingesup wg-quick[11281]: [#] ip -6 address add fde4:747
 Nov 08 13:38:37 vpn2.lab.ingesup wg-quick[11281]: [#] ip link set mtu 1420 up dev wg0
 Nov 08 13:38:37 vpn2.lab.ingesup systemd[1]: Started WireGuard via wg-quick(8) for wg0.
 ```
+## Configuration du client (pair) :
 - on installe Wireguard sur le client (.exe sur Windows)
 - Wireguard génère automatiquement une paire de clés 
-- on créer un fichier de configuration 
+- on créer un fichier de configuration :
 ```
 [Interface]
 PrivateKey = QPZe0DOp/vIXHIekaJmGq05m43WpqzndXKm12k9fA0U=
@@ -315,7 +318,7 @@ Endpoint = 192.168.1.3:51820
     Destination réseau    Masque réseau  Adr. passerelle   Adr. interface Métrique
           0.0.0.0          0.0.0.0     10.33.19.254      10.33.16.34     35
     ```
-    - on modifie le fichier de configuration du client :
+    - on modifie le fichier de configuration du client pour mettre la bonne passerelle :
     ```
     [Interface]
     PrivateKey = QPZe0DOp/vIXHIekaJmGq05m43WpqzndXKm12k9fA0U=
@@ -345,12 +348,13 @@ Endpoint = 192.168.1.3:51820
     AllowedIPs = 10.8.0.0/24, fde4:747e:e5e3::/64
     Endpoint = 192.168.1.3:51820
     ```
+### Retour sur le serveur :
 - on ajoute la clé publique du client sur le serveur :
     ```
     [manon@vpn2 ~]$ sudo wg set wg0 peer FfjcS+RQSK+KObq8LYJy525hiFHioAiY6cfAM9xqpEQ= allowed-ips "10.8.0.2,fde4:747e:e5e3::2"
     ```
     ```
-        [manon@vpn2 ~]$ sudo wg
+    [manon@vpn2 ~]$ sudo wg
     [sudo] password for manon:
     interface: wg0
       public key: +aWHFsKyySgp+lfMq2ofNVVvwAMXOy8vQ8YpAMuqDQw=
@@ -360,7 +364,35 @@ Endpoint = 192.168.1.3:51820
     peer: FfjcS+RQSK+KObq8LYJy525hiFHioAiY6cfAM9xqpEQ=
       endpoint: 192.168.1.1:59747
       allowed ips: 10.8.0.2/32, fde4:747e:e5e3::2/128
-      latest handshake: 8 minutes, 51 seconds ago
-      transfer: 1.27 KiB received, 124 B sent
     ```
+### Retour sur le client :
 - on démarre le tunnel 
+- on génère du trafic sur le tunnel :
+```
+PS C:\Users\Utilisateur> ping -c 1 10.8.0.1
+
+Envoi d’une requête 'Ping'  10.8.0.1 avec 32 octets de données :
+Réponse de 10.8.0.1 : octets=32 temps=1 ms TTL=64
+Réponse de 10.8.0.1 : octets=32 temps=1 ms TTL=64
+Réponse de 10.8.0.1 : octets=32 temps=1 ms TTL=64
+Réponse de 10.8.0.1 : octets=32 temps=1 ms TTL=64
+
+Statistiques Ping pour 10.8.0.1:
+    Paquets : envoyés = 4, reçus = 4, perdus = 0 (perte 0%),
+Durée approximative des boucles en millisecondes :
+```
+- on vérifie l'état du tunnel :
+```
+PS C:\Users\Utilisateur> wg
+interface: tp5_vpn2
+  public key: FfjcS+RQSK+KObq8LYJy525hiFHioAiY6cfAM9xqpEQ=
+  private key: (hidden)
+  listening port: 65313
+
+peer: +aWHFsKyySgp+lfMq2ofNVVvwAMXOy8vQ8YpAMuqDQw=
+  endpoint: 192.168.1.3:51820
+  allowed ips: 10.8.0.0/24, fde4:747e:e5e3::/64
+  latest handshake: 1 minute, 52 seconds ago
+  transfer: 1.32 KiB received, 4.94 KiB sent
+```
+On peut bel et bien se connecter au vpn et communiquer avec le serveur (ping) lorsque le tunnel est actif mais le trafic général ne passe pas par le VPN (problème dû à l'utilisation d'une VM).
