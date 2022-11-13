@@ -141,6 +141,9 @@ ChallengeResponseAuthentication no
 [sudo] password for manon:
 AOr2v73F9p5DcbXXgPYRVDa6B5BojyOzF/zxVchY7FM=
 ```
+```
+[manon@vpn2 ~]$ sudo chmod go= /etc/wireguard/private.key
+```
 - on génère une clé publique sur le serveur correspondant à la clé privé 
 ```
 [manon@vpn2 ~]$ sudo cat /etc/wireguard/private.key | wg pubkey | sudo tee /etc/wireguard/public.key
@@ -280,7 +283,7 @@ Nov 08 13:38:37 vpn2.lab.ingesup wg-quick[11281]: [#] ip -6 address add fde4:747
 Nov 08 13:38:37 vpn2.lab.ingesup wg-quick[11281]: [#] ip link set mtu 1420 up dev wg0
 Nov 08 13:38:37 vpn2.lab.ingesup systemd[1]: Started WireGuard via wg-quick(8) for wg0.
 ```
-- on installe Wireguard sur le client 
+- on installe Wireguard sur le client (.exe sur Windows)
 - Wireguard génère automatiquement une paire de clés 
 - on créer un fichier de configuration 
 ```
